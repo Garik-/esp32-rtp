@@ -1,6 +1,5 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
-BreakBeforeBraces: Allman
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
