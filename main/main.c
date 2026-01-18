@@ -9,12 +9,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-static const char* TAG = "esp32-udp-rtp";
+#include "wifi.h"
+
+static const char* TAG = "ESP32-UDP-RTP";
 
 static esp_err_t nvs_init() {
     esp_err_t ret = nvs_flash_init();
     if (unlikely(ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)) {
-        ESP_RETURN_ON_ERROR(nvs_flash_erase(), TAG, "nvs_flash_erase failed");
+        ESP_RETURN_ON_ERROR(nvs_flash_erase(), TAG, "nvs_flash_erase");
         ret = nvs_flash_init();
     }
 
@@ -42,7 +44,7 @@ static esp_err_t camera_init() {
         .pin_pwdn = PWDN_GPIO_NUM,
         .pin_reset = RESET_GPIO_NUM,
         .xclk_freq_hz = 20000000,
-        .frame_size = FRAMESIZE_SVGA,
+        .frame_size = FRAMESIZE_QVGA,
         .pixel_format = PIXFORMAT_JPEG, // for streaming
         // .pixel_format = PIXFORMAT_RGB565, // for face detection/recognition
         .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
@@ -71,27 +73,24 @@ static esp_err_t camera_init() {
 #endif
     }
 
-    ESP_RETURN_ON_ERROR(esp_camera_init(&config), TAG, "esp_camera_init failed");
+    ESP_RETURN_ON_ERROR(esp_camera_init(&config), TAG, "esp_camera_init");
 
     sensor_t* s = esp_camera_sensor_get();
     ESP_LOGI(TAG, "Sensor PID: 0x%04x", s->id.PID);
     // initial sensors are flipped vertically and colors are a bit saturated
-    if (s->id.PID == OV3660_PID) {
+    if (likely(s->id.PID == OV3660_PID)) {
         s->set_vflip(s, 1);       // flip it back
         s->set_brightness(s, 1);  // up the brightness just a bit
         s->set_saturation(s, -2); // lower the saturation
-    }
-    // drop down frame size for higher initial frame rate
-    if (likely(config.pixel_format == PIXFORMAT_JPEG)) {
-        s->set_framesize(s, FRAMESIZE_QVGA);
     }
 
     return ESP_OK;
 }
 
 static esp_err_t app_logic() {
-    ESP_RETURN_ON_ERROR(nvs_init(), TAG, "NVS init failed");
-    ESP_RETURN_ON_ERROR(camera_init(), TAG, "camera init failed");
+    ESP_RETURN_ON_ERROR(nvs_init(), TAG, "NVS init");
+    ESP_RETURN_ON_ERROR(camera_init(), TAG, "camera init");
+    ESP_RETURN_ON_ERROR(wifi_connect(), TAG, "wifi_connect");
 
     return ESP_OK;
 }
@@ -103,7 +102,7 @@ void app_main(void) {
         ESP_LOGI(TAG, "Taking picture...");
         camera_fb_t* pic = esp_camera_fb_get();
         if (!pic) {
-            ESP_LOGE(TAG, "Camera capture failed");
+            ESP_LOGE(TAG, "Camera capture");
             vTaskDelay(pdMS_TO_TICKS(100)); // Даем время системе
             continue;                       // Пропускаем итерацию, чтобы не упасть
         }

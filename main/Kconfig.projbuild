@@ -1,0 +1,25 @@
+menu "ESP32S3 UDP RTP Configuration"
+    config ESPRTP_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the device to connect to.
+
+    config ESPRTP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the device to use.
+            Can be left blank if the network has no security set.
+	config ESPRTP_UDP_PORT
+		int "UDP Server Port"
+		default 12345
+		range 1 65535
+		help
+			Port number for the UDP server.
+	config ESPRTP_MDNS_NAME
+		string "mDNS Name"
+		default "mydevice"
+		help
+			Name to register with mDNS.
+endmenu
