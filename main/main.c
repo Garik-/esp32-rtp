@@ -17,6 +17,8 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 
+#include "rtp/rtp.h"
+
 static const char* TAG = "ESP32-UDP-RTP";
 
 #define UDP_MAX_PAYLOAD 1200
@@ -262,7 +264,9 @@ static esp_err_t app_logic() {
 void app_main(void) {
     ESP_ERROR_CHECK(app_logic());
 
-    xTaskCreate(udp_server_task, "udp_server", 4096, NULL, 5, NULL);
+    rtp_init();
+
+    // xTaskCreate(udp_server_task, "udp_server", 4096, NULL, 5, NULL);
 
     /*while (1) {
         ESP_LOGI(TAG, "Taking picture...");
