@@ -9,6 +9,12 @@ static esp_netif_t* s_sta_netif = NULL;
 static closer_handle_t s_closer = NULL;
 #define DEFER(fn) CLOSER_DEFER(s_closer, (void*)fn)
 
+static uint32_t s_broadcast;
+
+uint32_t wifi_get_broadcast_addr() {
+    return s_broadcast;
+}
+
 static esp_err_t delete_default_wifi_driver_and_handlers() {
     if (unlikely(s_sta_netif == NULL)) {
         return ESP_OK;
@@ -72,6 +78,7 @@ static void handler_on_sta_got_ip(void* arg, esp_event_base_t event_base, int32_
     }
 
     ESP_LOGI(TAG, "Got IPv4 event, address: " IPSTR, IP2STR(&event->ip_info.ip));
+    s_broadcast = event->ip_info.ip.addr | ~event->ip_info.netmask.addr;
 
     TaskHandle_t to_notify = __atomic_load_n(&xTaskToNotify, __ATOMIC_SEQ_CST);
     if (to_notify) {

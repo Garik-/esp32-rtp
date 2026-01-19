@@ -15,6 +15,7 @@ extern "C" {
 #define WAIT_STA_GOT_IP_MAX pdMS_TO_TICKS(10000) // TODO: make configurable
 
 esp_err_t wifi_connect();
+uint32_t wifi_get_broadcast_addr();
 
 #ifdef __cplusplus
 }
