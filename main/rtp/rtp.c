@@ -13,7 +13,7 @@
 #define RTP_STREAM_ADDRESS inet_addr("192.168.1.78")
 
 /** RTP send delay - in milliseconds */
-#define RTP_SEND_DELAY 40
+#define RTP_SEND_DELAY 5
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
