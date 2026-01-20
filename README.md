@@ -268,7 +268,7 @@ EOI (FFD9)
 [Entropy-coded JPEG data]
 
 ---
-
+Quantization Table header
 MBZ        = 0x00
 Precision  = 0x00
 Length     = 0x0080
