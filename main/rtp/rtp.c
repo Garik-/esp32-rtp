@@ -78,8 +78,8 @@ static void rtp_send_packets(int sock, const struct sockaddr_in* to, const camer
     jpeg_header->type_specific = 0;
     jpeg_header->type = 0; // YUV 4:2:0
     jpeg_header->q = 255;  // Default quantization table
-    jpeg_header->width = 320 / 8;
-    jpeg_header->height = 240 / 8;
+    jpeg_header->width = fb->width / 8;
+    jpeg_header->height = fb->height / 8;
 
     // Fragment and send
     while (data_index < jpeg_size) {
