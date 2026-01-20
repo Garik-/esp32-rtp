@@ -1,7 +1,7 @@
 #include "esp_camera.h"
 #include "esp_log.h"
 
-#include "rtp.h"
+#include "common.h"
 
 #define MAX_QUANT_TABLES 4
 #define QUANT_TABLE_SIZE 64
