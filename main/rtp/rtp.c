@@ -5,6 +5,8 @@
 
 #include "jpeg.h"
 
+DRAM_ATTR static uint8_t rtp_jpeg_packet[RTP_PACKET_SIZE];
+
 /**
  * RTP send task
  */

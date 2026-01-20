@@ -34,8 +34,6 @@ struct rtp_header {
     uint32_t ssrc;
 } __attribute__((packed));
 
-DRAM_ATTR static uint8_t rtp_jpeg_packet[RTP_PACKET_SIZE];
-
 void rtp_init(void);
 
 #endif /* __RTP_H__ */
