@@ -58,7 +58,9 @@ static void inline set_fragment_offset(uint8_t* buf, const size_t offset) {
 /**
  * RTP send packets (fragmented for full JPEG)
  */
-static void rtp_send_packets(int sock, const struct sockaddr_in* to, const uint8_t* jpeg_data, size_t jpeg_size) {
+static void rtp_send_packets(int sock, const struct sockaddr_in* to, const camera_fb_t* fb) {
+    const uint8_t* jpeg_data = fb->buf;
+    size_t jpeg_size = fb->len;
     struct rtp_header* header;
     struct rtp_jpeg_header* jpeg_header;
     uint8_t* payload;
@@ -68,7 +70,9 @@ static void rtp_send_packets(int sock, const struct sockaddr_in* to, const uint8
     header = (struct rtp_header*)rtp_send_packet;
     header->version = RTP_VERSION;
     header->ssrc = PP_HTONL(RTP_SSRC);
-    header->timestamp = htonl(ntohl(header->timestamp) + RTP_TIMESTAMP_INCREMENT);
+    // Use camera timestamp converted to RTP units (90kHz)
+    uint32_t rtp_ts = (uint32_t)(fb->timestamp.tv_sec * 90000ULL + fb->timestamp.tv_usec * 90ULL / 1000ULL);
+    header->timestamp = htonl(rtp_ts);
 
     jpeg_header = (struct rtp_jpeg_header*)(rtp_send_packet + sizeof(struct rtp_header));
     jpeg_header->type_specific = 0;
@@ -139,7 +143,7 @@ static void rtp_send_task(void* pvParameters) {
                 while (1) {
                     camera_fb_t* fb = esp_camera_fb_get();
                     if (fb) {
-                        rtp_send_packets(sock, &to, fb->buf, fb->len);
+                        rtp_send_packets(sock, &to, fb);
                         esp_camera_fb_return(fb);
                     }
                 }
