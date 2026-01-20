@@ -90,7 +90,7 @@
 #define RTP_VERSION 0x80
 #define RTP_TIMESTAMP_INCREMENT 3600
 #define RTP_SSRC 0
-#define RTP_PAYLOADTYPE 96
+#define RTP_JPEG_PAYLOADTYPE 96
 #define RTP_MARKER_MASK 0x80
 
 /** RTP message header */
@@ -129,7 +129,7 @@ static void rtp_send_packets(int sock, struct sockaddr_in* to) {
     rtphdr->payloadtype = 0;
     rtphdr->ssrc = PP_HTONL(RTP_SSRC);
     rtphdr->timestamp = htonl(ntohl(rtphdr->timestamp) + RTP_TIMESTAMP_INCREMENT);
-    LWIP_DEBUGF(RTP_DEBUG, ("RTP payload type: %d\n", RTP_PAYLOADTYPE));
+    LWIP_DEBUGF(RTP_DEBUG, ("RTP payload type: %d\n", RTP_JPEG_PAYLOADTYPE));
 
     /* send RTP stream packets */
     rtp_data_index = 0;
@@ -141,7 +141,7 @@ static void rtp_send_packets(int sock, struct sockaddr_in* to) {
 
         /* set MARKER bit in RTP header on the last packet of an image */
         rtphdr->payloadtype =
-            RTP_PAYLOADTYPE | (((rtp_data_index + rtp_payload_size) >= sizeof(rtp_data)) ? RTP_MARKER_MASK : 0);
+            RTP_JPEG_PAYLOADTYPE | (((rtp_data_index + rtp_payload_size) >= sizeof(rtp_data)) ? RTP_MARKER_MASK : 0);
 
         /* send RTP stream packet */
         if (sendto(sock, rtp_send_packet, sizeof(struct rtp_hdr) + rtp_payload_size, 0, (struct sockaddr*)to,
