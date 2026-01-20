@@ -99,7 +99,6 @@ static int extract_quant_tables_refs(const uint8_t* buf, size_t size, const uint
 
             if (pos + 2 > size)
                 break;
-            // uint16_t length = (buf[pos] << 8) | buf[pos + 1];
             pos += 2;
 
             if (pos >= size)
@@ -148,7 +147,7 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
     // Prepare common headers
     header = (struct rtp_header*)buf;
     header->version = RTP_VERSION;
-    header->ssrc = htonl(RTP_SSRC);
+    header->ssrc = htonl(RTP_JPEG_SSRC);
     // Use camera timestamp converted to RTP units (90kHz)
     uint32_t rtp_ts = (uint32_t)(fb->timestamp.tv_sec * 90000ULL + fb->timestamp.tv_usec * 90ULL / 1000ULL);
     header->timestamp = htonl(rtp_ts);

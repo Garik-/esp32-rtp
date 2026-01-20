@@ -89,7 +89,7 @@
 /** RTP header constants */
 #define RTP_VERSION 0x80
 #define RTP_TIMESTAMP_INCREMENT 3600
-#define RTP_SSRC 0
+#define RTP_JPEG_SSRC 0
 #define RTP_JPEG_PAYLOADTYPE 96
 #define RTP_MARKER_MASK 0x80
 
@@ -127,7 +127,7 @@ static void rtp_send_packets(int sock, struct sockaddr_in* to) {
     rtphdr = (struct rtp_hdr*)rtp_send_packet;
     rtphdr->version = RTP_VERSION;
     rtphdr->payloadtype = 0;
-    rtphdr->ssrc = PP_HTONL(RTP_SSRC);
+    rtphdr->ssrc = PP_HTONL(RTP_JPEG_SSRC);
     rtphdr->timestamp = htonl(ntohl(rtphdr->timestamp) + RTP_TIMESTAMP_INCREMENT);
     LWIP_DEBUGF(RTP_DEBUG, ("RTP payload type: %d\n", RTP_JPEG_PAYLOADTYPE));
 

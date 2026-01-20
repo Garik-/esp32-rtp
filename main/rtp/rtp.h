@@ -13,9 +13,13 @@
 
 /** RTP header constants */
 #define RTP_VERSION 0x80
-#define RTP_TIMESTAMP_INCREMENT 3600
-#define RTP_SSRC 0
+
+#define RTP_JPEG_SSRC 0xDEADBEEF
 #define RTP_JPEG_PAYLOADTYPE 26
+
+#define RTP_OPUS_SSRC 0xABADBABE
+#define RTP_OPUS_PAYLOADTYPE 96
+
 #define RTP_MARKER_MASK 0x80
 
 /** RTP stream port */
