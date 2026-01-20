@@ -245,3 +245,34 @@ static void inc_counter(void) {
 мне не удалось пока настроить multicast, нужно знать IP адрес конкретной машины
 VLC принимает порт 4000 но не принимает порт 12345
 
+
+![jpeg](jpeg.png)
+
+```
+Что НЕ передаётся
+❌ Не передаются стандартные JPEG-маркеры, такие как:
+SOI (FFD8)
+APP0 / JFIF
+DQT (таблицы квантования — обычно)
+SOF
+SOS
+EOI (FFD9)
+❌ Не передаётся цельный .jpg файл
+
+
+[RTP header]
+[RTP JPEG header]
+[Restart Marker header]   ← если используется
+[Quantization Table header]  ← ОДИН
+[Quantization Table Data]    ← ВСЕ таблицы подряд
+[Entropy-coded JPEG data]
+
+---
+
+MBZ        = 0x00
+Precision  = 0x00
+Length     = 0x0080
+
+[64 bytes table 0]
+[64 bytes table 1]
+```
