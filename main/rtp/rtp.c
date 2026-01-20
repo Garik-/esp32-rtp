@@ -13,7 +13,7 @@
 #define RTP_STREAM_ADDRESS inet_addr("192.168.1.78")
 
 /** RTP send delay - in milliseconds */
-#define RTP_SEND_DELAY 5
+#define RTP_SEND_DELAY 10
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
@@ -69,7 +69,7 @@ static void rtp_send_packets(int sock, const struct sockaddr_in* to, const camer
     // Prepare common headers
     header = (struct rtp_header*)rtp_send_packet;
     header->version = RTP_VERSION;
-    header->ssrc = PP_HTONL(RTP_SSRC);
+    header->ssrc = htonl(RTP_SSRC);
     // Use camera timestamp converted to RTP units (90kHz)
     uint32_t rtp_ts = (uint32_t)(fb->timestamp.tv_sec * 90000ULL + fb->timestamp.tv_usec * 90ULL / 1000ULL);
     header->timestamp = htonl(rtp_ts);
@@ -93,11 +93,13 @@ static void rtp_send_packets(int sock, const struct sockaddr_in* to, const camer
         header->seqNum = htons(ntohs(header->seqNum) + 1);
 
         size_t packet_size = sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header) + chunk_size;
-        if (packet_size > RTP_PACKET_SIZE) {
+        if (unlikely(packet_size > RTP_PACKET_SIZE)) {
             ESP_LOGE(TAG, "Packet size %zu exceeds RTP_PACKET_SIZE %d", packet_size, RTP_PACKET_SIZE);
             return;
         }
-        if (sendto(sock, rtp_send_packet, packet_size, 0, (struct sockaddr*)to, sizeof(struct sockaddr)) < 0) {
+
+        int res = sendto(sock, rtp_send_packet, packet_size, 0, (struct sockaddr*)to, sizeof(struct sockaddr));
+        if (unlikely(res < 0)) {
             ESP_LOGE(TAG, "sendto error: %d (%s)", errno, strerror(errno));
         }
 
