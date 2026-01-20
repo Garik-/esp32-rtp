@@ -45,11 +45,11 @@ struct rtp_jpeg_header {
     uint8_t height;
 } __attribute__((packed));
 
-static uint8_t rtp_send_packet[RTP_PACKET_SIZE];
+DRAM_ATTR static uint8_t rtp_send_packet[RTP_PACKET_SIZE];
 
-static const char* TAG = "rtp_sender";
+static const char* const TAG = "rtp_sender";
 
-static void inline set_fragment_offset(uint8_t* buf, const size_t offset) {
+static inline void set_fragment_offset(uint8_t* buf, const size_t offset) {
     buf[0] = (offset >> 16) & 0xFF;
     buf[1] = (offset >> 8) & 0xFF;
     buf[2] = offset & 0xFF;
