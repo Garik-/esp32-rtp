@@ -146,7 +146,7 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
     size_t data_index = 0;
 
     // Prepare common headers
-    header = (struct rtp_header*)buf; // TODO: make param
+    header = (struct rtp_header*)buf;
     header->version = RTP_VERSION;
     header->ssrc = htonl(RTP_SSRC);
     // Use camera timestamp converted to RTP units (90kHz)

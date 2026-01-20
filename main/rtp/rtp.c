@@ -37,12 +37,12 @@ static void rtp_send_jpeg_task(void* pvParameters) {
                 to.sin_addr.s_addr = rtp_stream_address;
 
                 /* send RTP packets */
-                memset(rtp_send_packet, 0, sizeof(rtp_send_packet));
+                memset(rtp_jpeg_packet, 0, sizeof(rtp_jpeg_packet));
 
                 while (1) {
                     camera_fb_t* fb = esp_camera_fb_get();
                     if (fb) {
-                        rtp_send_jpeg_packets(sock, &to, rtp_send_packet, fb);
+                        rtp_send_jpeg_packets(sock, &to, rtp_jpeg_packet, fb);
                         esp_camera_fb_return(fb);
                     }
                 }
