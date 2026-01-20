@@ -25,15 +25,15 @@ static void rtp_send_jpeg_task(void* pvParameters) {
             /* prepare local address */
             memset(&local, 0, sizeof(local));
             local.sin_family = AF_INET;
-            local.sin_port = PP_HTONS(INADDR_ANY);
-            local.sin_addr.s_addr = PP_HTONL(INADDR_ANY);
+            local.sin_port = htons(INADDR_ANY);
+            local.sin_addr.s_addr = htonl(INADDR_ANY);
 
             /* bind to local address */
             if (bind(sock, (struct sockaddr*)&local, sizeof(local)) == 0) {
                 /* prepare RTP stream address */
                 memset(&to, 0, sizeof(to));
                 to.sin_family = AF_INET;
-                to.sin_port = PP_HTONS(RTP_STREAM_PORT);
+                to.sin_port = htons(RTP_STREAM_PORT);
                 to.sin_addr.s_addr = rtp_stream_address;
 
                 /* send RTP packets */

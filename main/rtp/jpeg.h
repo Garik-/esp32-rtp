@@ -90,13 +90,9 @@ static const uint8_t* get_jpeg_data(const uint8_t* buf, size_t size, size_t* out
     return buf + data_start;
 }
 
-static void extract_quant_tables_refs(const uint8_t* buf, size_t size, const uint8_t** tables) {
-    // Инициализировать NULL
-    for (int i = 0; i < MAX_QUANT_TABLES; i++) {
-        tables[i] = NULL;
-    }
-
+static int extract_quant_tables_refs(const uint8_t* buf, size_t size, const uint8_t** tables) {
     size_t pos = 0;
+    int count = 0;
     while (pos < size - 4) {
         if (buf[pos] == 0xFF && buf[pos + 1] == 0xDB) {
             pos += 2;
@@ -117,12 +113,14 @@ static void extract_quant_tables_refs(const uint8_t* buf, size_t size, const uin
 
             if (pos + QUANT_TABLE_SIZE > size)
                 continue;
-            tables[table_id] = buf + pos;
+            tables[count++] = buf + pos;
             pos += QUANT_TABLE_SIZE;
         } else {
             pos++;
         }
     }
+
+    return count;
 }
 
 /**
@@ -138,11 +136,9 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
     }
 
     const uint8_t* quant_tables[MAX_QUANT_TABLES];
-    extract_quant_tables_refs(fb->buf, fb->len, quant_tables);
+    memset(quant_tables, 0, sizeof(const uint8_t*) * MAX_QUANT_TABLES);
 
-    int quant_tables_count = 0;
-    for (; quant_tables_count < MAX_QUANT_TABLES && quant_tables[quant_tables_count] != NULL; quant_tables_count++)
-        ;
+    int quant_tables_count = extract_quant_tables_refs(fb->buf, fb->len, quant_tables);
 
     struct rtp_header* header;
     struct rtp_jpeg_header* jpeg_header;
@@ -175,7 +171,7 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
             struct jpeg_quant_header* qh = (struct jpeg_quant_header*)payload;
             qh->mbz = 0;
             qh->precision = 0; // 8-bit tables
-            qh->length = htons(quant_tables_count * 64);
+            qh->length = htons(quant_tables_count * QUANT_TABLE_SIZE);
             payload += sizeof(*qh);
 
             for (int i = 0; i < quant_tables_count; i++) {
