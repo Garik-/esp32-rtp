@@ -56,59 +56,50 @@ static void inline set_fragment_offset(uint8_t* buf, const size_t offset) {
 }
 
 /**
- * RTP send packets
+ * RTP send packets (fragmented for full JPEG)
  */
-static void rtp_send_packets(int sock, const struct sockaddr_in* to, const uint8_t* rtp_data,
-                             const size_t rtp_data_size) {
+static void rtp_send_packets(int sock, const struct sockaddr_in* to, const uint8_t* jpeg_data, size_t jpeg_size) {
     struct rtp_header* header;
     struct rtp_jpeg_header* jpeg_header;
-    uint8_t* rtp_payload;
-    int rtp_payload_size;
-    int rtp_data_index;
+    uint8_t* payload;
+    size_t data_index = 0;
 
-    /* prepare RTP packet */
+    // Prepare common headers
     header = (struct rtp_header*)rtp_send_packet;
     header->version = RTP_VERSION;
-    header->payloadtype = 0;
     header->ssrc = PP_HTONL(RTP_SSRC);
     header->timestamp = htonl(ntohl(header->timestamp) + RTP_TIMESTAMP_INCREMENT);
-    ESP_LOGD(TAG, "RTP payload type: %d", RTP_PAYLOADTYPE);
 
-    /* prepare RTP JPEG packet */
     jpeg_header = (struct rtp_jpeg_header*)(rtp_send_packet + sizeof(struct rtp_header));
     jpeg_header->type_specific = 0;
-    jpeg_header->type = 1;
-    jpeg_header->q = 255;
-
-    // QVGA
+    jpeg_header->type = 0; // YUV 4:2:0
+    jpeg_header->q = 255;  // Default quantization table
     jpeg_header->width = 320 / 8;
     jpeg_header->height = 240 / 8;
 
-    /* send RTP stream packets */
-    rtp_data_index = 0;
-    do {
-        rtp_payload = rtp_send_packet + sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header);
-        rtp_payload_size = min(RTP_PAYLOAD_SIZE, (rtp_data_size - rtp_data_index));
+    // Fragment and send
+    while (data_index < jpeg_size) {
+        payload = rtp_send_packet + sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header);
+        size_t chunk_size = min(RTP_PAYLOAD_SIZE, jpeg_size - data_index);
 
-        set_fragment_offset(jpeg_header->fragment_offset, rtp_data_index);
-        memcpy(rtp_payload, rtp_data + rtp_data_index, rtp_payload_size);
+        set_fragment_offset(jpeg_header->fragment_offset, data_index);
+        memcpy(payload, jpeg_data + data_index, chunk_size);
 
-        /* set MARKER bit in RTP header on the last packet of an image */
-        header->payloadtype =
-            RTP_PAYLOADTYPE | (((rtp_data_index + rtp_payload_size) >= rtp_data_size) ? RTP_MARKER_MASK : 0);
+        header->payloadtype = RTP_PAYLOADTYPE | (((data_index + chunk_size) >= jpeg_size) ? RTP_MARKER_MASK : 0);
+        header->seqNum = htons(ntohs(header->seqNum) + 1);
 
-        /* send RTP stream packet */
-        vTaskDelay(pdMS_TO_TICKS(RTP_SEND_DELAY)); // clean buf
-        if (sendto(sock, rtp_send_packet, sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header) + rtp_payload_size,
-                   0, (struct sockaddr*)to, sizeof(struct sockaddr)) >= 0) {
-            header->seqNum = htons(ntohs(header->seqNum) + 1);
-
-            rtp_data_index += rtp_payload_size;
-        } else {
+        size_t packet_size = sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header) + chunk_size;
+        if (packet_size > RTP_PACKET_SIZE) {
+            ESP_LOGE(TAG, "Packet size %zu exceeds RTP_PACKET_SIZE %d", packet_size, RTP_PACKET_SIZE);
+            return;
+        }
+        if (sendto(sock, rtp_send_packet, packet_size, 0, (struct sockaddr*)to, sizeof(struct sockaddr)) < 0) {
             ESP_LOGE(TAG, "sendto error: %d (%s)", errno, strerror(errno));
         }
 
-    } while (rtp_data_index < rtp_data_size);
+        vTaskDelay(pdMS_TO_TICKS(RTP_SEND_DELAY));
+        data_index += chunk_size;
+    }
 }
 
 /**
@@ -144,6 +135,7 @@ static void rtp_send_task(void* pvParameters) {
 
                 /* send RTP packets */
                 memset(rtp_send_packet, 0, sizeof(rtp_send_packet));
+
                 while (1) {
                     camera_fb_t* fb = esp_camera_fb_get();
                     if (fb) {
