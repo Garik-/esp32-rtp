@@ -4,9 +4,8 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 
+#include "esp_camera.h"
 #include "esp_log.h"
-
-#include "rtpdata.h"
 
 /** RTP stream port */
 #define RTP_STREAM_PORT CONFIG_ESPRTP_UDP_PORT
@@ -26,10 +25,10 @@
 #define RTP_VERSION 0x80
 #define RTP_TIMESTAMP_INCREMENT 3600
 #define RTP_SSRC 0
-#define RTP_PAYLOADTYPE 96
+#define RTP_PAYLOADTYPE 26
 #define RTP_MARKER_MASK 0x80
 
-struct rtp_hdr {
+struct rtp_header {
     uint8_t version;
     uint8_t payloadtype;
     uint16_t seqNum;
@@ -37,45 +36,73 @@ struct rtp_hdr {
     uint32_t ssrc;
 } __attribute__((packed));
 
+struct rtp_jpeg_header {
+    uint8_t type_specific;
+    uint8_t fragment_offset[3];
+    uint8_t type;
+    uint8_t q;
+    uint8_t width;
+    uint8_t height;
+} __attribute__((packed));
+
 static uint8_t rtp_send_packet[RTP_PACKET_SIZE];
 
 static const char* TAG = "rtp_sender";
 
+static void inline set_fragment_offset(uint8_t* buf, const size_t offset) {
+    buf[0] = (offset >> 16) & 0xFF;
+    buf[1] = (offset >> 8) & 0xFF;
+    buf[2] = offset & 0xFF;
+}
+
 /**
  * RTP send packets
  */
-static void rtp_send_packets(int sock, const struct sockaddr_in* to, const char* rtp_data,
-                             const unsigned long rtp_data_size) {
-    struct rtp_hdr* rtphdr;
+static void rtp_send_packets(int sock, const struct sockaddr_in* to, const uint8_t* rtp_data,
+                             const size_t rtp_data_size) {
+    struct rtp_header* header;
+    struct rtp_jpeg_header* jpeg_header;
     uint8_t* rtp_payload;
     int rtp_payload_size;
     int rtp_data_index;
 
     /* prepare RTP packet */
-    rtphdr = (struct rtp_hdr*)rtp_send_packet;
-    rtphdr->version = RTP_VERSION;
-    rtphdr->payloadtype = 0;
-    rtphdr->ssrc = PP_HTONL(RTP_SSRC);
-    rtphdr->timestamp = htonl(ntohl(rtphdr->timestamp) + RTP_TIMESTAMP_INCREMENT);
+    header = (struct rtp_header*)rtp_send_packet;
+    header->version = RTP_VERSION;
+    header->payloadtype = 0;
+    header->ssrc = PP_HTONL(RTP_SSRC);
+    header->timestamp = htonl(ntohl(header->timestamp) + RTP_TIMESTAMP_INCREMENT);
     ESP_LOGD(TAG, "RTP payload type: %d", RTP_PAYLOADTYPE);
+
+    /* prepare RTP JPEG packet */
+    jpeg_header = (struct rtp_jpeg_header*)(rtp_send_packet + sizeof(struct rtp_header));
+    jpeg_header->type_specific = 0;
+    jpeg_header->type = 1;
+    jpeg_header->q = 255;
+
+    // QVGA
+    jpeg_header->width = 320 / 8;
+    jpeg_header->height = 240 / 8;
 
     /* send RTP stream packets */
     rtp_data_index = 0;
     do {
-        rtp_payload = rtp_send_packet + sizeof(struct rtp_hdr);
+        rtp_payload = rtp_send_packet + sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header);
         rtp_payload_size = min(RTP_PAYLOAD_SIZE, (rtp_data_size - rtp_data_index));
 
+        set_fragment_offset(jpeg_header->fragment_offset, rtp_data_index);
         memcpy(rtp_payload, rtp_data + rtp_data_index, rtp_payload_size);
 
         /* set MARKER bit in RTP header on the last packet of an image */
-        rtphdr->payloadtype =
+        header->payloadtype =
             RTP_PAYLOADTYPE | (((rtp_data_index + rtp_payload_size) >= rtp_data_size) ? RTP_MARKER_MASK : 0);
 
         /* send RTP stream packet */
         vTaskDelay(pdMS_TO_TICKS(RTP_SEND_DELAY)); // clean buf
-        if (sendto(sock, rtp_send_packet, sizeof(struct rtp_hdr) + rtp_payload_size, 0, (struct sockaddr*)to,
-                   sizeof(struct sockaddr)) >= 0) {
-            rtphdr->seqNum = htons(ntohs(rtphdr->seqNum) + 1);
+        if (sendto(sock, rtp_send_packet, sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header) + rtp_payload_size,
+                   0, (struct sockaddr*)to, sizeof(struct sockaddr)) >= 0) {
+            header->seqNum = htons(ntohs(header->seqNum) + 1);
+
             rtp_data_index += rtp_payload_size;
         } else {
             ESP_LOGE(TAG, "sendto error: %d (%s)", errno, strerror(errno));
@@ -118,7 +145,11 @@ static void rtp_send_task(void* pvParameters) {
                 /* send RTP packets */
                 memset(rtp_send_packet, 0, sizeof(rtp_send_packet));
                 while (1) {
-                    rtp_send_packets(sock, &to, rtp_data_test, sizeof(rtp_data_test));
+                    camera_fb_t* fb = esp_camera_fb_get();
+                    if (fb) {
+                        rtp_send_packets(sock, &to, fb->buf, fb->len);
+                        esp_camera_fb_return(fb);
+                    }
                 }
             }
 
