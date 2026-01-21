@@ -89,23 +89,22 @@ __attribute__((cold)) static esp_err_t camera_init() {
 
 __attribute__((cold)) static esp_err_t app_logic() {
     ESP_RETURN_ON_ERROR(nvs_init(), TAG, "NVS init");
+
+#ifdef CONFIG_ESPRTP_VIDEO_SUPPORT
     ESP_RETURN_ON_ERROR(camera_init(), TAG, "camera init");
+#endif
+
+#ifdef CONFIG_ESPRTP_AUDIO_SUPPORT
     ESP_RETURN_ON_ERROR(pdm_mic_init(), TAG, "pdm_mic_init");
+#endif
+
     ESP_RETURN_ON_ERROR(wifi_connect(), TAG, "wifi_connect");
+
+    rtp_init();
 
     return ESP_OK;
 }
 
 void app_main(void) {
     ESP_ERROR_CHECK(app_logic());
-
-    /*
-    size_t bytes_read = 0;
-    int16_t pcm16k[FRAME_16K];
-    ESP_ERROR_CHECK(i2s_channel_read(rx_chan, pcm16k, sizeof(pcm16k), &bytes_read, portMAX_DELAY));
-    */
-
-    // ESP_LOGI(TAG, "read: %d (%d)", pcm16k[0], bytes_read);
-
-    rtp_init();
 }

@@ -35,7 +35,7 @@ static void rtp_send_jpeg_task(void* pvParameters) {
                 /* prepare RTP stream address */
                 memset(&to, 0, sizeof(to));
                 to.sin_family = AF_INET;
-                to.sin_port = htons(RTP_STREAM_PORT);
+                to.sin_port = htons(CONFIG_ESPRTP_UDP_VIDEO_PORT);
                 to.sin_addr.s_addr = rtp_stream_address;
 
                 /* send RTP packets */
@@ -81,7 +81,7 @@ static void rtp_send_audio_task(void* pvParameters) {
                 /* prepare RTP stream address */
                 memset(&to, 0, sizeof(to));
                 to.sin_family = AF_INET;
-                to.sin_port = htons(RTP_PCMU_STREAM_PORT);
+                to.sin_port = htons(CONFIG_ESPRTP_UDP_AUDIO_PORT);
                 to.sin_addr.s_addr = rtp_stream_address;
 
                 /* send RTP packets */
@@ -107,7 +107,7 @@ static void rtp_send_audio_task(void* pvParameters) {
                         break;
                     }
 
-                    header->timestamp += FRAME_8K;
+                    header->timestamp = htonl(ntohl(header->timestamp) + FRAME_8K);
                     header->seqNum = htons(ntohs(header->seqNum) + 1);
 
                     vTaskDelay(pdMS_TO_TICKS(20));
@@ -121,9 +121,11 @@ static void rtp_send_audio_task(void* pvParameters) {
 }
 
 __attribute__((cold)) void rtp_init(void) {
-    xTaskCreatePinnedToCore(rtp_send_audio_task, "rtp_send_audio_task", DEFAULT_THREAD_STACKSIZE, NULL,
-                            DEFAULT_THREAD_PRIO, NULL, 0);
+#ifdef CONFIG_ESPRTP_AUDIO_SUPPORT
+    xTaskCreate(rtp_send_audio_task, "rtp_send_audio_task", DEFAULT_THREAD_STACKSIZE, NULL, DEFAULT_THREAD_PRIO, NULL);
+#endif
 
-    xTaskCreatePinnedToCore(rtp_send_jpeg_task, "rtp_send_jpeg_task", DEFAULT_THREAD_STACKSIZE, NULL,
-                            DEFAULT_THREAD_PRIO, NULL, 1);
+#ifdef CONFIG_ESPRTP_VIDEO_SUPPORT
+    xTaskCreate(rtp_send_jpeg_task, "rtp_send_jpeg_task", DEFAULT_THREAD_STACKSIZE, NULL, DEFAULT_THREAD_PRIO, NULL);
+#endif
 }
