@@ -22,8 +22,8 @@
 #define RTP_MARKER_MASK 0x80
 
 /** RTP stream port */
-#define RTP_STREAM_PORT CONFIG_ESPRTP_UDP_PORT
-#define RTP_PCMU_STREAM_PORT 4001 // TODO: move to config
+#define RTP_STREAM_PORT CONFIG_ESPRTP_UDP_PORT // должно быть четное число это важно
+#define RTP_PCMU_STREAM_PORT 4002              // TODO: move to config - должно быть четное число это важно
 /** RTP stream multicast address as IPv4 address in "uint32_t" format */
 #define RTP_STREAM_ADDRESS inet_addr("192.168.1.78")
 

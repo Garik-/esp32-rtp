@@ -3,5 +3,5 @@ o=- 0 0 IN IP4 192.168.1.42
 s=RTP PCMU Stream
 c=IN IP4 192.168.1.78
 t=0 0
-m=audio 4001 RTP/AVP 0
+m=audio 4002 RTP/AVP 0
 a=rtpmap:0 PCMU/8000

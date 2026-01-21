@@ -106,21 +106,17 @@ static void rtp_send_audio_task(void* pvParameters) {
                         break;
                     }
 
-                    int res = sendto(sock, rtp_audio_packet, sizeof(struct rtp_header) + FRAME_8K, 0,
+                    int res = sendto(sock, rtp_audio_packet, sizeof(struct rtp_header) + bytes_read, 0,
                                      (struct sockaddr*)&to, sizeof(struct sockaddr));
                     if (unlikely(res < 0)) {
                         ESP_LOGE(TAG, "sendto error: %d (%s)", errno, strerror(errno));
                         break;
                     }
 
-                    ts += FRAME_8K;
-
-                    rtp_audio_packet[4] = ts >> 24;
-                    rtp_audio_packet[5] = ts >> 16;
-                    rtp_audio_packet[6] = ts >> 8;
-                    rtp_audio_packet[7] = ts & 0xFF;
-
+                    header->timestamp = htonl(ts);
                     header->seqNum = htons(ntohs(header->seqNum) + 1);
+
+                    ts += FRAME_8K;
 
                     vTaskDelay(pdMS_TO_TICKS(20));
                 }
