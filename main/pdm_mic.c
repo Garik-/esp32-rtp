@@ -20,6 +20,8 @@ static const char* TAG = "pdm_mic";
 
 static i2s_chan_handle_t rx_chan;
 
+// https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/pcm_tablegen.h
+
 #define QUANT_MASK (0xf) /* Quantization field mask. */
 #define SEG_SHIFT (4)    /* Left shift for segment number. */
 #define SEG_MASK (0x70)  /* Segment field mask. */
