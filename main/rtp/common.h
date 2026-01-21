@@ -16,13 +16,14 @@
 #define RTP_JPEG_SSRC 0xDEADBEEF
 #define RTP_JPEG_PAYLOADTYPE 26
 
-#define RTP_OPUS_SSRC 0xABADBABE
-#define RTP_OPUS_PAYLOADTYPE 96
+#define RTP_PCMU_SSRC 0xABADBABE
+#define RTP_PCMU_PAYLOADTYPE 0
 
 #define RTP_MARKER_MASK 0x80
 
 /** RTP stream port */
 #define RTP_STREAM_PORT CONFIG_ESPRTP_UDP_PORT
+#define RTP_PCMU_STREAM_PORT 4001 // TODO: move to config
 /** RTP stream multicast address as IPv4 address in "uint32_t" format */
 #define RTP_STREAM_ADDRESS inet_addr("192.168.1.78")
 

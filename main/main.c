@@ -7,6 +7,7 @@
 #include "esp_psram.h"
 #include "nvs_flash.h"
 
+#include "pdm_mic.h"
 #include "rtp/rtp.h"
 #include "wifi/wifi.h"
 
@@ -89,6 +90,7 @@ static esp_err_t camera_init() {
 static esp_err_t app_logic() {
     ESP_RETURN_ON_ERROR(nvs_init(), TAG, "NVS init");
     ESP_RETURN_ON_ERROR(camera_init(), TAG, "camera init");
+    ESP_RETURN_ON_ERROR(pdm_mic_init(), TAG, "pdm_mic_init");
     ESP_RETURN_ON_ERROR(wifi_connect(), TAG, "wifi_connect");
 
     return ESP_OK;
@@ -96,6 +98,14 @@ static esp_err_t app_logic() {
 
 void app_main(void) {
     ESP_ERROR_CHECK(app_logic());
+
+    /*
+    size_t bytes_read = 0;
+    int16_t pcm16k[FRAME_16K];
+    ESP_ERROR_CHECK(i2s_channel_read(rx_chan, pcm16k, sizeof(pcm16k), &bytes_read, portMAX_DELAY));
+    */
+
+    // ESP_LOGI(TAG, "read: %d (%d)", pcm16k[0], bytes_read);
 
     rtp_init();
 }
