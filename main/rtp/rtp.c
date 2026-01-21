@@ -56,11 +56,6 @@ static void rtp_send_jpeg_task(void* pvParameters) {
     }
 }
 
-static inline err_t rtp_send_audio_packets(int sock, const struct sockaddr_in* to, uint8_t* buf) {
-
-    return ERR_OK;
-}
-
 static void rtp_send_audio_task(void* pvParameters) {
     int sock;
     struct sockaddr_in local;
@@ -97,7 +92,6 @@ static void rtp_send_audio_task(void* pvParameters) {
                 header->payloadtype = RTP_PCMU_PAYLOADTYPE;
                 header->ssrc = htonl(RTP_PCMU_SSRC);
 
-                uint32_t ts = 0;
                 size_t bytes_read = 0;
 
                 while (1) {
@@ -113,10 +107,8 @@ static void rtp_send_audio_task(void* pvParameters) {
                         break;
                     }
 
-                    header->timestamp = htonl(ts);
+                    header->timestamp += FRAME_8K;
                     header->seqNum = htons(ntohs(header->seqNum) + 1);
-
-                    ts += FRAME_8K;
 
                     vTaskDelay(pdMS_TO_TICKS(20));
                 }
