@@ -18,8 +18,6 @@
 
 static const char* TAG = "pdm_mic";
 
-static i2s_chan_handle_t rx_chan;
-
 // https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/pcm_tablegen.h
 
 #define QUANT_MASK (0xf) /* Quantization field mask. */
@@ -28,10 +26,13 @@ static i2s_chan_handle_t rx_chan;
 #define SIGN_BIT (0x80)  /* Sign bit for a A-law byte. */
 #define BIAS (0x84)      /* Bias for linear code. */
 
+#ifdef CONFIG_ESPRTP_AUDIO_SUPPORT
 static DRAM_ATTR uint8_t linear_to_ulaw[16384];
+static i2s_chan_handle_t rx_chan;
+#endif
 
-static __attribute__((cold)) void build_xlaw_table(uint8_t* linear_to_xlaw, int (*xlaw2linear)(unsigned char),
-                                                   int mask) {
+static
+    __attribute__((cold)) void build_xlaw_table(uint8_t* linear_to_xlaw, int (*xlaw2linear)(unsigned char), int mask) {
     int i, j, v, v1, v2;
 
     j = 1;
