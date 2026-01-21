@@ -128,7 +128,7 @@ static void rtp_send_audio_task(void* pvParameters) {
     }
 }
 
-void rtp_init(void) {
+__attribute__((cold)) void rtp_init(void) {
     xTaskCreatePinnedToCore(rtp_send_audio_task, "rtp_send_audio_task", DEFAULT_THREAD_STACKSIZE, NULL,
                             DEFAULT_THREAD_PRIO, NULL, 0);
 
