@@ -129,6 +129,9 @@ static void rtp_send_audio_task(void* pvParameters) {
 }
 
 void rtp_init(void) {
-    xTaskCreate(rtp_send_jpeg_task, "rtp_send_jpeg_task", DEFAULT_THREAD_STACKSIZE, NULL, DEFAULT_THREAD_PRIO, NULL);
-    xTaskCreate(rtp_send_audio_task, "rtp_send_audio_task", DEFAULT_THREAD_STACKSIZE, NULL, DEFAULT_THREAD_PRIO, NULL);
+    xTaskCreatePinnedToCore(rtp_send_audio_task, "rtp_send_audio_task", DEFAULT_THREAD_STACKSIZE, NULL,
+                            DEFAULT_THREAD_PRIO, NULL, 0);
+
+    xTaskCreatePinnedToCore(rtp_send_jpeg_task, "rtp_send_jpeg_task", DEFAULT_THREAD_STACKSIZE, NULL,
+                            DEFAULT_THREAD_PRIO, NULL, 1);
 }

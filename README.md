@@ -10,9 +10,10 @@ goals:
 - [ ] замерить сколько эта скатина жрет 
 - [x] выставить правильные заголовки RTP
 - [ ] посмотри про restart markers (RSTM)
-- [ ] передавать звук https://wiki.seeedstudio.com/xiao_esp32s3_sense_mic/
+- [x] передавать звук https://wiki.seeedstudio.com/xiao_esp32s3_sense_mic/
 - [ ] оптимизировать код
 - [ ] реализовать переподключение при обрыве wifi соединения с бекоф линейным
+- [ ] через UART CLI сделать управление качеством видео
 
 
 stradm.dsp

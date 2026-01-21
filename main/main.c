@@ -13,7 +13,7 @@
 
 static const char* TAG = "ESP32-UDP-RTP";
 
-static esp_err_t nvs_init() {
+__attribute__((cold)) static esp_err_t nvs_init() {
     esp_err_t ret = nvs_flash_init();
     if (unlikely(ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)) {
         ESP_RETURN_ON_ERROR(nvs_flash_erase(), TAG, "nvs_flash_erase");
@@ -23,7 +23,7 @@ static esp_err_t nvs_init() {
     return ret;
 }
 
-static esp_err_t camera_init() {
+__attribute__((cold)) static esp_err_t camera_init() {
     camera_config_t config = {
         .ledc_channel = LEDC_CHANNEL_0,
         .ledc_timer = LEDC_TIMER_0,
@@ -87,7 +87,7 @@ static esp_err_t camera_init() {
     return ESP_OK;
 }
 
-static esp_err_t app_logic() {
+__attribute__((cold)) static esp_err_t app_logic() {
     ESP_RETURN_ON_ERROR(nvs_init(), TAG, "NVS init");
     ESP_RETURN_ON_ERROR(camera_init(), TAG, "camera init");
     ESP_RETURN_ON_ERROR(pdm_mic_init(), TAG, "pdm_mic_init");

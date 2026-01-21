@@ -26,7 +26,7 @@ static i2s_chan_handle_t rx_chan;
 #define SIGN_BIT (0x80)  /* Sign bit for a A-law byte. */
 #define BIAS (0x84)      /* Bias for linear code. */
 
-static uint8_t linear_to_ulaw[16384];
+static DRAM_ATTR uint8_t linear_to_ulaw[16384];
 
 static __attribute__((cold)) void build_xlaw_table(uint8_t* linear_to_xlaw, int (*xlaw2linear)(unsigned char),
                                                    int mask) {
@@ -70,7 +70,7 @@ static void pcm_ulaw_tableinit(void) {
     build_xlaw_table(linear_to_ulaw, ulaw2linear, 0xff);
 }
 
-esp_err_t pdm_mic_init() {
+esp_err_t __attribute__((cold)) pdm_mic_init() {
 
     pcm_ulaw_tableinit();
 
