@@ -96,6 +96,18 @@ esp_err_t pdm_mic_init() {
     return i2s_channel_enable(rx_chan);
 }
 
+#define NOISE_RMS_THRESH 500U // RMS порог шума, подбирать
+#define ATTACK_FACTOR 0.2f    // скорость открытия noise gate
+#define RELEASE_FACTOR 0.05f  // скорость закрытия noise gate
+
+// плавная регулировка громкости (0.0 = тихо, 1.0 = обычная, 2.0 = +100%)
+#define VOLUME_GAIN 2.5f;
+
+static inline int16_t abs16(int16_t x) {
+    int16_t mask = x >> 15;
+    return (x + mask) ^ mask;
+}
+
 esp_err_t pdm_mic_read(uint8_t* ulaw_buffer, size_t* ulaw_size) {
     size_t bytes_read = 0;
     int16_t pcm8k[FRAME_8K];
@@ -105,8 +117,32 @@ esp_err_t pdm_mic_read(uint8_t* ulaw_buffer, size_t* ulaw_size) {
 
     size_t samples_read = bytes_read / sizeof(int16_t);
 
+#ifdef NOISE_GATE
+    // --- RMS через среднее абсолютное значение ---
+    static float gate_gain = 0.0f; // плавный gain noise gate
+    uint32_t sum_abs = 0;
     for (size_t i = 0; i < samples_read; i++) {
-        ulaw_buffer[i] = linear_to_ulaw[(pcm8k[i] + 32768) >> 2];
+        sum_abs += abs16(pcm8k[i]);
+    }
+    const float rms = sum_abs / (float)samples_read;
+
+    // --- плавный noise gate ---
+    const bool open = __builtin_expect(rms > NOISE_RMS_THRESH, 0);
+    gate_gain += open ? ATTACK_FACTOR * (1.0f - gate_gain) : RELEASE_FACTOR * (0.0f - gate_gain);
+
+    if (gate_gain < 0.0f)
+        gate_gain = 0.0f;
+    if (gate_gain > 1.0f)
+        gate_gain = 1.0f;
+#endif
+
+    for (size_t i = 0; i < samples_read; i++) {
+#ifdef NOISE_GATE
+        float sample = pcm8k[i] * gate_gain * VOLUME_GAIN;
+#else
+        float sample = pcm8k[i] * VOLUME_GAIN;
+#endif
+        ulaw_buffer[i] = linear_to_ulaw[((int16_t)sample + 32768) >> 2];
     }
 
     *ulaw_size = samples_read;
