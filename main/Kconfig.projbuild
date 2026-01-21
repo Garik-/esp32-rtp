@@ -1,16 +1,4 @@
 menu "ESP32S3 UDP RTP Configuration"
-    config ESPRTP_VIDEO_SUPPORT
-        bool "Enable video streaming support"
-        default y
-        help
-            Enable support for video streaming over RTP. When enabled, video RTP packets will be sent.
-
-    config ESPRTP_AUDIO_SUPPORT
-        bool "Enable audio streaming support"
-        default y
-        help
-            Enable support for audio streaming over RTP. When enabled, audio RTP packets will be sent.
-
     config ESPRTP_WIFI_SSID
         string "WiFi SSID"
         default "myssid"
@@ -24,21 +12,36 @@ menu "ESP32S3 UDP RTP Configuration"
             WiFi password (WPA or WPA2) for the device to use.
             Can be left blank if the network has no security set.
 
-    config ESPRTP_UDP_VIDEO_PORT
-        int "UDP Video RTP Port"
-        default 4000
-        range 1 65535
-        depends on ESPRTP_VIDEO_SUPPORT
-        help
-            Port number for video RTP streaming. The device will send video RTP packets to this port.
-            Note: RTP ports are typically even numbers.
 
-    config ESPRTP_UDP_AUDIO_PORT
-        int "UDP Audio RTP Port"
-        default 4002
-        range 1 65535
-        depends on ESPRTP_AUDIO_SUPPORT
+    config ESPRTP_VIDEO_SUPPORT
+        bool "Enable video streaming support"
+        default y
         help
-            Port number for audio RTP streaming. The device will send audio RTP packets to this port.
-            Note: RTP ports are typically even numbers.
+            Enable support for video streaming over RTP. When enabled, video RTP packets will be sent.
+
+        config ESPRTP_UDP_VIDEO_PORT
+            int "UDP Video RTP Port"
+            default 4000
+            range 1 65535
+            depends on ESPRTP_VIDEO_SUPPORT
+            help
+                Port number for video RTP streaming. The device will send video RTP packets to this port.
+                Note: RTP ports are typically even numbers.
+
+    config ESPRTP_AUDIO_SUPPORT
+        bool "Enable audio streaming support"
+        default y
+        help
+            Enable support for audio streaming over RTP. When enabled, audio RTP packets will be sent.
+
+        config ESPRTP_UDP_AUDIO_PORT
+            int "UDP Audio RTP Port"
+            default 4002
+            range 1 65535
+            depends on ESPRTP_AUDIO_SUPPORT
+            help
+                Port number for audio RTP streaming. The device will send audio RTP packets to this port.
+                Note: RTP ports are typically even numbers.
+
+
 endmenu
