@@ -6,7 +6,8 @@
 #define MAX_QUANT_TABLES 4
 #define QUANT_TABLE_SIZE 64
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
+#define JPEG_TYPE_YUV422 0U
+#define JPEG_Q_DEFAULT 255U
 
 static const char* const TAG = "rtp_sender";
 
@@ -31,9 +32,14 @@ static inline void set_fragment_offset(uint8_t* buf, const size_t offset) {
     buf[2] = offset & 0xFF;
 }
 
+static inline size_t min(size_t a, size_t b) {
+    return (a < b) ? a : b;
+}
+
 static const uint8_t* get_jpeg_data(const uint8_t* buf, size_t size, size_t* out_size) {
-    if (!buf || size < 4) {
-        *out_size = 0;
+    if (unlikely(!buf || !out_size || size < 4)) {
+        if (out_size)
+            *out_size = 0;
         return NULL;
     }
 
@@ -83,37 +89,57 @@ static const uint8_t* get_jpeg_data(const uint8_t* buf, size_t size, size_t* out
         return NULL; // EOI не найден
     }
 
-    // Копировать всё от data_start до pos (включительно FF D9? Но "до FF D9" значит перед ним)
-    // Предполагаю копировать данные до FF D9, не включая его
-
     *out_size = pos - data_start;
     return buf + data_start;
 }
 
-static int extract_quant_tables_refs(const uint8_t* buf, size_t size, const uint8_t** tables) {
+static size_t extract_quant_tables_refs(const uint8_t* buf, size_t size, const uint8_t** tables) {
+    if (unlikely((buf == NULL) || (tables == NULL))) {
+        return 0;
+    }
+
     size_t pos = 0;
-    int count = 0;
-    while (pos < size - 4) {
-        if (buf[pos] == 0xFF && buf[pos + 1] == 0xDB) {
+    size_t count = 0;
+
+    while ((pos + 4) <= size) {
+        if ((buf[pos] == 0xFF) && (buf[pos + 1] == 0xDB)) {
             pos += 2;
 
-            if (pos + 2 > size)
+            /* Read DQT segment length */
+            if ((pos + 2) > size) {
                 break;
+            }
+
+            uint16_t seg_len = ((uint16_t)buf[pos] << 8) | (uint16_t)buf[pos + 1];
             pos += 2;
 
-            if (pos >= size)
-                break;
-            uint8_t table_info = buf[pos++];
-            uint8_t table_id = table_info & 0x0F;
-            uint8_t precision = (table_info >> 4) & 0x0F;
+            if ((seg_len < 2) || ((pos + seg_len - 2) > size)) {
+                break; /* invalid segment */
+            }
 
-            if (precision != 0 || table_id >= MAX_QUANT_TABLES)
-                continue;
+            size_t seg_end = pos + (size_t)seg_len - 2;
 
-            if (pos + QUANT_TABLE_SIZE > size)
-                continue;
-            tables[count++] = buf + pos;
-            pos += QUANT_TABLE_SIZE;
+            /* Parse all tables inside this DQT segment */
+            while ((pos < seg_end) && (count < MAX_QUANT_TABLES)) {
+                uint8_t table_info = buf[pos++];
+                uint8_t table_id = table_info & 0x0F;
+                uint8_t precision = (table_info >> 4) & 0x0F;
+
+                size_t table_size = (precision == 0) ? 64 : 128;
+
+                if ((pos + table_size) > seg_end) {
+                    break;
+                }
+
+                if ((precision == 0) && (table_id < MAX_QUANT_TABLES)) {
+                    tables[count++] = &buf[pos];
+                }
+
+                pos += table_size;
+            }
+
+            /* Jump to end of DQT segment */
+            pos = seg_end;
         } else {
             pos++;
         }
@@ -129,15 +155,14 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
 
     size_t jpeg_size;
     const uint8_t* jpeg_data = get_jpeg_data(fb->buf, fb->len, &jpeg_size);
-    if (jpeg_data == NULL) {
+    if (unlikely(jpeg_data == NULL)) {
         ESP_LOGE(TAG, "empty jpeg payload");
         return;
     }
 
     const uint8_t* quant_tables[MAX_QUANT_TABLES];
-    memset(quant_tables, 0, sizeof(const uint8_t*) * MAX_QUANT_TABLES);
-
-    int quant_tables_count = extract_quant_tables_refs(fb->buf, fb->len, quant_tables);
+    size_t quant_tables_count = extract_quant_tables_refs(fb->buf, fb->len, quant_tables);
+    configASSERT(quant_tables_count <= MAX_QUANT_TABLES);
 
     struct rtp_header* header;
     struct rtp_jpeg_header* jpeg_header;
@@ -151,17 +176,20 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
     // Use camera timestamp converted to RTP units (90kHz)
     uint32_t rtp_ts = (uint32_t)(fb->timestamp.tv_sec * 90000ULL + fb->timestamp.tv_usec * 90ULL / 1000ULL);
     header->timestamp = htonl(rtp_ts);
-    header->seqNum = htons(esp_random() & 0xFFFF); // RFC 3550
+
+    uint16_t seq = esp_random() & 0xFFFF;
 
     jpeg_header = (struct rtp_jpeg_header*)(buf + sizeof(struct rtp_header));
     jpeg_header->type_specific = 0;
-    jpeg_header->type = 0; // YUV 4:2:2
-    jpeg_header->q = 255;  // Default quantization table
+    jpeg_header->type = JPEG_TYPE_YUV422; // YUV 4:2:2
+    jpeg_header->q = JPEG_Q_DEFAULT;      // Default quantization table
     jpeg_header->width = fb->width / 8;
     jpeg_header->height = fb->height / 8;
 
     // Fragment and send
     while (data_index < jpeg_size) {
+        header->seqNum = htons(seq++); // RFC 3550
+
         size_t tables_size =
             (data_index == 0) ? (quant_tables_count * QUANT_TABLE_SIZE) + sizeof(struct jpeg_quant_header) : 0;
         payload = buf + sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header);
@@ -174,7 +202,7 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
             qh->length = htons(quant_tables_count * QUANT_TABLE_SIZE);
             payload += sizeof(*qh);
 
-            for (int i = 0; i < quant_tables_count; i++) {
+            for (size_t i = 0; i < quant_tables_count; i++) {
                 memcpy(payload, quant_tables[i], QUANT_TABLE_SIZE);
                 payload += QUANT_TABLE_SIZE;
             }
@@ -185,8 +213,8 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
         set_fragment_offset(jpeg_header->fragment_offset, data_index);
         memcpy(payload, jpeg_data + data_index, chunk_size);
 
-        header->payloadtype = RTP_JPEG_PAYLOADTYPE | (((data_index + chunk_size) >= jpeg_size) ? RTP_MARKER_MASK : 0);
-        header->seqNum = htons(ntohs(header->seqNum) + 1);
+        uint8_t marker = ((data_index + chunk_size) >= jpeg_size) ? RTP_MARKER_MASK : 0U;
+        header->payloadtype = (uint8_t)(RTP_JPEG_PAYLOADTYPE | marker);
 
         size_t packet_size = sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header) + tables_size + chunk_size;
         if (unlikely(packet_size > RTP_PACKET_SIZE)) {
@@ -200,6 +228,7 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
             break; // TODO: я чет не уверен что надо весь кадр скипать
         }
 
+        /* Throttle RTP packets to avoid network congestion */
         vTaskDelay(pdMS_TO_TICKS(RTP_SEND_DELAY));
         data_index += chunk_size;
     }
