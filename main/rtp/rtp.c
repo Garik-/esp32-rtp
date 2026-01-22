@@ -59,6 +59,8 @@ static void rtp_send_jpeg_task(void* pvParameters) {
     }
 }
 
+#define RTP_AUDIO_FRAME_MS 20
+
 static void rtp_send_audio_task(void* pvParameters) {
     int sock;
     struct sockaddr_in local;
@@ -94,11 +96,12 @@ static void rtp_send_audio_task(void* pvParameters) {
                 header->version = RTP_VERSION;
                 header->payloadtype = RTP_PCMU_PAYLOADTYPE;
                 header->ssrc = htonl(RTP_PCMU_SSRC);
-                header->seqNum = htons(esp_random() & 0xFFFF); // RFC 3550
 
+                uint16_t seq = esp_random() & 0xFFFF;
+                uint32_t timestamp = 0;
                 size_t bytes_read = 0;
 
-                const TickType_t xFrequency = pdMS_TO_TICKS(20); // 20ms
+                const TickType_t xFrequency = pdMS_TO_TICKS(RTP_AUDIO_FRAME_MS);
                 TickType_t xLastWakeTime = xTaskGetTickCount();
 
                 while (1) {
@@ -107,14 +110,13 @@ static void rtp_send_audio_task(void* pvParameters) {
                         goto next_frame;
                     }
 
-                    int res = sendto(sock, rtp_audio_packet, sizeof(struct rtp_header) + bytes_read, 0,
-                                     (struct sockaddr*)&to, sizeof(struct sockaddr));
-                    if (unlikely(res < 0)) {
-                        ESP_LOGW(TAG, "sendto error: %d (%s), skipping this frame", errno, strerror(errno));
-                    }
+                    header->seqNum = htons(seq++); // RFC 3550
+                    header->timestamp = htonl(timestamp);
+                    timestamp += FRAME_8K;
 
-                    header->timestamp = htonl(ntohl(header->timestamp) + FRAME_8K);
-                    header->seqNum = htons(ntohs(header->seqNum) + 1);
+                    sendto(sock, rtp_audio_packet, sizeof(struct rtp_header) + bytes_read, 0, (struct sockaddr*)&to,
+                           sizeof(to));
+
                 next_frame:
                     vTaskDelayUntil(&xLastWakeTime, xFrequency);
                 }
