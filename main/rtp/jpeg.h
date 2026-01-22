@@ -151,6 +151,7 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
     // Use camera timestamp converted to RTP units (90kHz)
     uint32_t rtp_ts = (uint32_t)(fb->timestamp.tv_sec * 90000ULL + fb->timestamp.tv_usec * 90ULL / 1000ULL);
     header->timestamp = htonl(rtp_ts);
+    header->seqNum = htons(esp_random() & 0xFFFF); // RFC 3550
 
     jpeg_header = (struct rtp_jpeg_header*)(buf + sizeof(struct rtp_header));
     jpeg_header->type_specific = 0;

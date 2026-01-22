@@ -46,6 +46,9 @@ static void rtp_send_jpeg_task(void* pvParameters) {
                     if (fb) {
                         rtp_send_jpeg_packets(sock, &to, rtp_jpeg_packet, fb);
                         esp_camera_fb_return(fb);
+                    } else {
+                        ESP_LOGE(TAG, "esp_camera_fb_get failed");
+                        vTaskDelay(pdMS_TO_TICKS(10));
                     }
                 }
             }
@@ -91,6 +94,7 @@ static void rtp_send_audio_task(void* pvParameters) {
                 header->version = RTP_VERSION;
                 header->payloadtype = RTP_PCMU_PAYLOADTYPE;
                 header->ssrc = htonl(RTP_PCMU_SSRC);
+                header->seqNum = htons(esp_random() & 0xFFFF); // RFC 3550
 
                 size_t bytes_read = 0;
 
