@@ -190,12 +190,13 @@ static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_
         size_t packet_size = sizeof(struct rtp_header) + sizeof(struct rtp_jpeg_header) + tables_size + chunk_size;
         if (unlikely(packet_size > RTP_PACKET_SIZE)) {
             ESP_LOGE(TAG, "Packet size %zu exceeds RTP_PACKET_SIZE %d", packet_size, RTP_PACKET_SIZE);
-            return;
+            break;
         }
 
         int res = sendto(sock, buf, packet_size, 0, (struct sockaddr*)to, sizeof(struct sockaddr));
         if (unlikely(res < 0)) {
-            ESP_LOGE(TAG, "sendto error: %d (%s)", errno, strerror(errno));
+            ESP_LOGE(TAG, "sendto error: %d (%s), skipping this packet", errno, strerror(errno));
+            break; // TODO: я чет не уверен что надо весь кадр скипать
         }
 
         vTaskDelay(pdMS_TO_TICKS(RTP_SEND_DELAY));
