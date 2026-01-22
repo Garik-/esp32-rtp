@@ -1,7 +1,9 @@
 v=0
 o=- 0 0 IN IP4 192.168.1.42
-s=RTP JPEG Stream
+s=RTP Stream
 c=IN IP4 192.168.1.78
 t=0 0
 m=video 4000 RTP/AVP 26
 a=rtpmap:26 JPEG/90000
+m=audio 4002 RTP/AVP 0
+a=rtpmap:0 PCMU/8000

@@ -94,23 +94,25 @@ static void rtp_send_audio_task(void* pvParameters) {
 
                 size_t bytes_read = 0;
 
+                const TickType_t xFrequency = pdMS_TO_TICKS(20); // 20ms
+                TickType_t xLastWakeTime = xTaskGetTickCount();
+
                 while (1) {
                     if (pdm_mic_read(rtp_audio_packet + sizeof(struct rtp_header), &bytes_read) != ERR_OK) {
-                        ESP_LOGE(TAG, "pdm_mic_read failed");
-                        break;
+                        ESP_LOGW(TAG, "pdm_mic_read failed, skipping this frame");
+                        goto next_frame;
                     }
 
                     int res = sendto(sock, rtp_audio_packet, sizeof(struct rtp_header) + bytes_read, 0,
                                      (struct sockaddr*)&to, sizeof(struct sockaddr));
                     if (unlikely(res < 0)) {
-                        ESP_LOGE(TAG, "sendto error: %d (%s)", errno, strerror(errno));
-                        break;
+                        ESP_LOGW(TAG, "sendto error: %d (%s), skipping this frame", errno, strerror(errno));
                     }
 
                     header->timestamp = htonl(ntohl(header->timestamp) + FRAME_8K);
                     header->seqNum = htons(ntohs(header->seqNum) + 1);
-
-                    vTaskDelay(pdMS_TO_TICKS(20));
+                next_frame:
+                    vTaskDelayUntil(&xLastWakeTime, xFrequency);
                 }
 
                 /* close the socket */
