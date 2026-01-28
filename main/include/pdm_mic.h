@@ -1,3 +1,5 @@
+#pragma once
+
 #include "esp_err.h"
 
 #define FRAME_16K 320 // 20 ms @ 16 kHz

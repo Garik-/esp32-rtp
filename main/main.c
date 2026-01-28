@@ -1,5 +1,3 @@
-#include "camera_pins.h"
-
 #include "esp_camera.h"
 #include "esp_check.h"
 #include "esp_err.h"
@@ -7,9 +5,10 @@
 #include "esp_psram.h"
 #include "nvs_flash.h"
 
-#include "pdm_mic.h"
-#include "rtp/rtp.h"
-#include "wifi/wifi.h"
+#include "include/camera_pins.h"
+#include "include/pdm_mic.h"
+#include "rtp/include/rtp.h"
+#include "wifi/include/wifi.h"
 
 static const char* TAG = "ESP32-UDP-RTP";
 

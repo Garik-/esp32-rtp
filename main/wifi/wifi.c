@@ -1,11 +1,11 @@
-#include "wifi.h"
+#include "include/wifi.h"
 
 static const char* TAG = "WIFI";
 static TaskHandle_t xTaskToNotify = NULL;
 static esp_netif_t* s_sta_netif = NULL;
 
 #define CLOSER_IMPLEMENTATION
-#include "closer.h"
+#include "../include/closer.h"
 static closer_handle_t s_closer = NULL;
 #define DEFER(fn) CLOSER_DEFER(s_closer, (void*)fn)
 
