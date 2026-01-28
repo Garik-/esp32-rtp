@@ -1,3 +1,5 @@
+#pragma once
+
 // CAMERA_MODEL_XIAO_ESP32S3
 // see
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/Camera/CameraWebServer/camera_pins.h

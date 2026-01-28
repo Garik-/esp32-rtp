@@ -7,7 +7,7 @@
 
 #include "freertos/FreeRTOS.h"
 
-#include "pdm_mic.h"
+#include "include/pdm_mic.h"
 
 #define SAMPLE_RATE 8000
 #define I2S_PORT I2S_NUM_0

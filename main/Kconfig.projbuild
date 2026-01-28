@@ -12,6 +12,11 @@ menu "ESP32S3 UDP RTP Configuration"
             WiFi password (WPA or WPA2) for the device to use.
             Can be left blank if the network has no security set.
 
+    config ESPRTP_IPV4_ADDR
+        string "Unicast IPV4 Address"
+        default "192.168.1.78"
+        help
+            IPV4 unicast address.
 
     config ESPRTP_VIDEO_SUPPORT
         bool "Enable video streaming support"
@@ -20,7 +25,7 @@ menu "ESP32S3 UDP RTP Configuration"
             Enable support for video streaming over RTP. When enabled, video RTP packets will be sent.
 
         config ESPRTP_UDP_VIDEO_PORT
-            int "UDP Video RTP Port"
+            int "UDP Video Port"
             default 4000
             range 1 65535
             depends on ESPRTP_VIDEO_SUPPORT
@@ -35,7 +40,7 @@ menu "ESP32S3 UDP RTP Configuration"
             Enable support for audio streaming over RTP. When enabled, audio RTP packets will be sent.
 
         config ESPRTP_UDP_AUDIO_PORT
-            int "UDP Audio RTP Port"
+            int "UDP Audio Port"
             default 4002
             range 1 65535
             depends on ESPRTP_AUDIO_SUPPORT

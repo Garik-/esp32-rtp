@@ -1,30 +1,6 @@
-#include "esp_camera.h"
-#include "esp_log.h"
+#include "include/jpeg.h"
 
-#include "common.h"
-
-#define MAX_QUANT_TABLES 4
-#define QUANT_TABLE_SIZE 64
-
-#define JPEG_TYPE_YUV422 0U
-#define JPEG_Q_DEFAULT 255U
-
-static const char* const TAG = "rtp_sender";
-
-struct rtp_jpeg_header {
-    uint8_t type_specific;
-    uint8_t fragment_offset[3];
-    uint8_t type;
-    uint8_t q;
-    uint8_t width;
-    uint8_t height;
-} __attribute__((packed));
-
-struct jpeg_quant_header {
-    uint8_t mbz;
-    uint8_t precision;
-    uint16_t length;
-} __attribute__((packed));
+static const char* const TAG = "rtp_jpeg_sender";
 
 static inline void set_fragment_offset(uint8_t* buf, const size_t offset) {
     buf[0] = (offset >> 16) & 0xFF;
@@ -151,7 +127,7 @@ static size_t extract_quant_tables_refs(const uint8_t* buf, size_t size, const u
 /**
  * RTP send packets (fragmented for full JPEG)
  */
-static void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_t* buf, const camera_fb_t* fb) {
+void rtp_send_jpeg_packets(int sock, const struct sockaddr_in* to, uint8_t* buf, const camera_fb_t* fb) {
 
     size_t jpeg_size;
     const uint8_t* jpeg_data = get_jpeg_data(fb->buf, fb->len, &jpeg_size);
